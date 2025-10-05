@@ -1,0 +1,5 @@
+gitpython>=3.1.40  # For git operations
+pyyaml>=6.0.1    # For YAML parsing and cookbook management
+click>=8.1.7     # For CLI interface
+pytest>=7.4.2    # For testing
+pytest-cov>=4.1.0  # For test coverage

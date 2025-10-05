@@ -1,0 +1,160 @@
+name: "Web Server Installation"
+description: "Installs and configures NGINX web server with PHP-FPM"
+version: "1.0.0"
+
+# Package dependencies
+dependencies:
+  - nginx
+  - php8.1-fpm
+  - php8.1-mysql
+  - php8.1-xml
+  - php8.1-cli
+  - php8.1-common
+  - php8.1-curl
+  - php8.1-mbstring
+  - php8.1-gd
+  - php8.1-zip
+
+# Installation steps
+install:
+  pre_install:
+    - command: "/usr/bin/apt-get update"
+      sudo: true
+    - command: "/usr/bin/apt-get install -y software-properties-common apt-transport-https"
+      sudo: true
+    - command: "add-apt-repository -y ppa:ondrej/php"
+      sudo: true
+    - command: "/usr/bin/apt-get update"
+      sudo: true
+    - command: "/usr/bin/apt-get upgrade -y"
+      sudo: true
+  
+  install:
+    - package: nginx
+      version: latest
+      state: present
+    - package: php8.1-fpm
+      version: latest
+      state: present
+    - package: php8.1-mysql
+      version: latest
+      state: present
+    - package: php8.1-xml
+      version: latest
+      state: present
+    - package: php8.1-cli
+      version: latest
+      state: present
+    - package: php8.1-common
+      version: latest
+      state: present
+    - package: php8.1-curl
+      version: latest
+      state: present
+    - package: php8.1-mbstring
+      version: latest
+      state: present
+    - package: php8.1-gd
+      version: latest
+      state: present
+    - package: php8.1-zip
+      version: latest
+      state: present
+    
+  post_install:
+    # Create required directories with proper permissions
+    - command: "/bin/mkdir -p /var/www/html"
+      sudo: true
+    - command: "/bin/rm -f /var/www/html/index.nginx-debian.html"
+      sudo: true
+    - command: "/bin/chown -R www-data:www-data /var/www/html"
+      sudo: true
+    - command: "/bin/chmod -R 755 /var/www/html"
+      sudo: true
+
+# Configuration steps
+configure:
+  files:
+    - path: /etc/nginx/sites-available/default
+      content: |
+        server {
+            listen 80 default_server;
+            listen [::]:80 default_server;
+            
+            root /var/www/html;
+            index index.php index.html index.htm;
+            
+            server_name _;
+            
+            location / {
+                try_files $uri $uri/ =404;
+            }
+            
+            location ~ \.php$ {
+                include snippets/fastcgi-php.conf;
+                fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+            }
+            
+            location ~ /\.ht {
+                deny all;
+            }
+        }
+      owner: root
+      group: root
+      mode: "0644"
+    
+    - path: /etc/php/8.1/fpm/php.ini
+      content: |
+        [PHP]
+        memory_limit = 128M
+        upload_max_filesize = 10M
+        post_max_size = 10M
+        max_execution_time = 30
+        display_errors = Off
+        error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
+        
+        [Date]
+        date.timezone = UTC
+      owner: root
+      group: root
+      mode: "0644"
+    
+    - path: /var/www/html/index.php
+      content: |
+        <?php
+        phpinfo();
+      owner: www-data
+      group: www-data
+      mode: "0644"
+    
+    - path: /var/www/html/test.php
+      content: |
+        <?php
+        echo "<h1>PHP Test Page Modified.</h1>";
+        echo "<p>PHP version: " . phpversion() . "</p>";
+        echo "<p>Server time: " . date('Y-m-d H:i:s') . "</p>";
+        
+        $extensions = get_loaded_extensions();
+        sort($extensions);
+        
+        echo "<h2>Loaded Extensions:</h2>";
+        echo "<ul>";
+        foreach ($extensions as $extension) {
+            echo "<li>" . htmlspecialchars($extension) . "</li>";
+        }
+        echo "</ul>";
+      owner: www-data
+      group: www-data
+      mode: "0644"
+  
+  # Configure services after files are in place
+  services:
+    # First configure and start PHP-FPM
+    - name: php8.1-fpm
+      state: restarted
+      enabled: true
+    # Then configure and start Nginx
+    - name: nginx
+      state: restarted
+      enabled: true
+

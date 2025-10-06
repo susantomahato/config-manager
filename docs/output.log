@@ -1,0 +1,146 @@
+### Run bootstrap script output.
+(.venv) root@ip-172-31-255-43:~/config-manager# sudo ./bootstrap.sh
+Starting Git Sync Manager setup...
+Removing existing virtual environment...
+Creating virtual environment...
+./bootstrap.sh: line 90: /root/config-manager/.venv/bin/python3: No such file or directory
+(.venv) root@ip-172-31-255-43:~/config-manager# ./bootstrap.sh
+Starting Git Sync Manager setup...
+Creating virtual environment...
+Activating virtual environment...
+Setting up config manager directories and permissions...
+Warning: Could not determine sudo user. Please manually add users to config-manager group
+Installing dependencies...
+Collecting gitpython>=3.1.40
+  Using cached gitpython-3.1.45-py3-none-any.whl (208 kB)
+Collecting pyyaml>=6.0.1
+  Using cached pyyaml-6.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (770 kB)
+Collecting click>=8.1.7
+  Using cached click-8.3.0-py3-none-any.whl (107 kB)
+Collecting pytest>=7.4.2
+  Using cached pytest-8.4.2-py3-none-any.whl (365 kB)
+Collecting pytest-cov>=4.1.0
+  Using cached pytest_cov-7.0.0-py3-none-any.whl (22 kB)
+Collecting gitdb<5,>=4.0.1
+  Using cached gitdb-4.0.12-py3-none-any.whl (62 kB)
+Collecting packaging>=20
+  Using cached packaging-25.0-py3-none-any.whl (66 kB)
+Collecting exceptiongroup>=1
+  Using cached exceptiongroup-1.3.0-py3-none-any.whl (16 kB)
+Collecting pygments>=2.7.2
+  Using cached pygments-2.19.2-py3-none-any.whl (1.2 MB)
+Collecting iniconfig>=1
+  Using cached iniconfig-2.1.0-py3-none-any.whl (6.0 kB)
+Collecting pluggy<2,>=1.5
+  Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Collecting tomli>=1
+  Using cached tomli-2.2.1-py3-none-any.whl (14 kB)
+Collecting coverage[toml]>=7.10.6
+  Using cached coverage-7.10.7-cp310-cp310-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (246 kB)
+Collecting typing-extensions>=4.6.0
+  Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Collecting smmap<6,>=3.0.1
+  Using cached smmap-5.0.2-py3-none-any.whl (24 kB)
+Installing collected packages: typing-extensions, tomli, smmap, pyyaml, pygments, pluggy, packaging, iniconfig, coverage, click, gitdb, exceptiongroup, pytest, gitpython, pytest-cov
+Successfully installed click-8.3.0 coverage-7.10.7 exceptiongroup-1.3.0 gitdb-4.0.12 gitpython-3.1.45 iniconfig-2.1.0 packaging-25.0 pluggy-1.6.0 pygments-2.19.2 pytest-8.4.2 pytest-cov-7.0.0 pyyaml-6.0.3 smmap-5.0.2 tomli-2.2.1 typing-extensions-4.15.0
+Setup complete! You can now run the sync manager using:
+source .venv/bin/activate
+python3 src/sync_service.py --help
+python3 src/config_manager.py --help
+
+### Souce venv for isolation.
+root@ip-172-31-255-43:~/config-manager# source .venv/bin/activate
+
+#### Run sync service once.
+(.venv) root@ip-172-31-255-43:~/config-manager# python3 src/sync_service.py --once
+2025-10-06 18:20:33,589 - INFO - Using existing repository
+2025-10-06 18:20:33,633 - INFO - Starting git sync service
+2025-10-06 18:20:33,634 - INFO - Repository: https://github.com/susantomahato/config-manager.git
+2025-10-06 18:20:33,634 - INFO - Local path: /var/lib/config-manager/default_repo
+2025-10-06 18:20:33,634 - INFO - Branch: main
+2025-10-06 18:20:33,634 - INFO - Sync interval: 5 minutes
+2025-10-06 18:20:33,634 - INFO - Checking for repository updates
+2025-10-06 18:20:33,969 - INFO - Changes detected in remote repository
+2025-10-06 18:20:34,098 - INFO - Successfully pulled changes
+2025-10-06 18:20:34,098 - INFO - Single sync completed
+
+### Run sync service with continous mode.
+(.venv) root@ip-172-31-255-43:~/config-manager# python3 src/sync_service.py
+2025-10-06 18:25:14,184 - INFO - Using existing repository
+2025-10-06 18:25:14,235 - INFO - Starting git sync service
+2025-10-06 18:25:14,235 - INFO - Repository: https://github.com/susantomahato/config-manager.git
+2025-10-06 18:25:14,235 - INFO - Local path: /var/lib/config-manager/default_repo
+2025-10-06 18:25:14,235 - INFO - Branch: main
+2025-10-06 18:25:14,235 - INFO - Sync interval: 5 minutes
+2025-10-06 18:25:14,235 - INFO - Checking for repository updates
+2025-10-06 18:25:14,656 - INFO - Repository is up to date
+2025-10-06 18:25:14,656 - INFO - Next sync in 5 minutes
+
+#### Run config manager output.
+(.venv) root@ip-172-31-255-43:~/config-manager# python3 src/config_manager.py
+INFO: Found 1 config file(s)
+2025-10-06 18:21:07,224 - INFO - Config ../../var/lib/config-manager/default_repo/cookbooks/webserver.yaml has changed, will apply updates
+2025-10-06 18:21:07,234 - INFO - Applying configuration from: /var/lib/config-manager/default_repo/cookbooks/webserver.yaml
+2025-10-06 18:21:07,234 - INFO - Running: /usr/bin/apt-get update
+2025-10-06 18:21:19,974 - INFO - Running: /usr/bin/apt-get install -y software-properties-common apt-transport-https
+2025-10-06 18:21:20,659 - INFO - Running: add-apt-repository -y ppa:ondrej/php
+2025-10-06 18:22:57,061 - INFO - Running: /bin/mkdir -p /var/www/html
+2025-10-06 18:22:57,068 - INFO - Running: /bin/rm -f /var/www/html/index.nginx-debian.html
+2025-10-06 18:22:57,071 - INFO - Running: /bin/chown -R www-data:www-data /var/www/html
+2025-10-06 18:22:57,080 - INFO - Running: /bin/chmod -R 755 /var/www/html
+2025-10-06 18:22:57,085 - INFO - Updating file /etc/nginx/sites-available/default due to state mismatch
+2025-10-06 18:22:57,085 - INFO - Running: mv /tmp/default.tmp /etc/nginx/sites-available/default
+2025-10-06 18:22:57,091 - INFO - Updated content of /etc/nginx/sites-available/default
+2025-10-06 18:22:57,091 - INFO - Setting ownership root:root on /etc/nginx/sites-available/default
+2025-10-06 18:22:57,091 - INFO - Running: chown root:root /etc/nginx/sites-available/default
+2025-10-06 18:22:57,092 - INFO - Setting mode 0644 on /etc/nginx/sites-available/default
+2025-10-06 18:22:57,092 - INFO - Running: chmod 0644 /etc/nginx/sites-available/default
+2025-10-06 18:22:57,099 - INFO - Updating file /etc/php/8.1/fpm/php.ini due to state mismatch
+2025-10-06 18:22:57,099 - INFO - Running: mv /tmp/php.ini.tmp /etc/php/8.1/fpm/php.ini
+2025-10-06 18:22:57,100 - INFO - Updated content of /etc/php/8.1/fpm/php.ini
+2025-10-06 18:22:57,100 - INFO - Setting ownership root:root on /etc/php/8.1/fpm/php.ini
+2025-10-06 18:22:57,101 - INFO - Running: chown root:root /etc/php/8.1/fpm/php.ini
+2025-10-06 18:22:57,102 - INFO - Setting mode 0644 on /etc/php/8.1/fpm/php.ini
+2025-10-06 18:22:57,102 - INFO - Running: chmod 0644 /etc/php/8.1/fpm/php.ini
+2025-10-06 18:22:57,105 - INFO - Updating file /var/www/html/index.php due to state mismatch
+2025-10-06 18:22:57,105 - INFO - Running: mv /tmp/index.php.tmp /var/www/html/index.php
+2025-10-06 18:22:57,107 - INFO - Updated content of /var/www/html/index.php
+2025-10-06 18:22:57,107 - INFO - Setting ownership www-data:www-data on /var/www/html/index.php
+2025-10-06 18:22:57,107 - INFO - Running: chown www-data:www-data /var/www/html/index.php
+2025-10-06 18:22:57,108 - INFO - Setting mode 0644 on /var/www/html/index.php
+2025-10-06 18:22:57,108 - INFO - Running: chmod 0644 /var/www/html/index.php
+2025-10-06 18:22:57,110 - INFO - Updating file /var/www/html/test.php due to state mismatch
+2025-10-06 18:22:57,110 - INFO - Running: mv /tmp/test.php.tmp /var/www/html/test.php
+2025-10-06 18:22:57,111 - INFO - Updated content of /var/www/html/test.php
+2025-10-06 18:22:57,111 - INFO - Setting ownership www-data:www-data on /var/www/html/test.php
+2025-10-06 18:22:57,111 - INFO - Running: chown www-data:www-data /var/www/html/test.php
+2025-10-06 18:22:57,113 - INFO - Setting mode 0644 on /var/www/html/test.php
+2025-10-06 18:22:57,113 - INFO - Running: chmod 0644 /var/www/html/test.php
+2025-10-06 18:22:57,114 - INFO - Running: systemctl restart php8.1-fpm
+2025-10-06 18:22:57,691 - INFO - Running: systemctl enable php8.1-fpm
+2025-10-06 18:22:58,916 - INFO - Running: systemctl restart nginx
+2025-10-06 18:22:59,035 - INFO - Running: systemctl enable nginx
+2025-10-06 18:22:59,933 - INFO - Configuration applied successfully
+2025-10-06 18:22:59,934 - INFO - State saved successfully
+2025-10-06 18:22:59,935 - INFO - All configurations successful - state file updated
+
+Processed 1 configs: 1 succeeded, 0 failed
+[OK] webserver.yaml: Success
+
+
+#### With rerun of config manager (No changes this time)
+(.venv) root@ip-172-31-255-43:~/config-manager# python3 src/config_manager.py
+INFO: Found 1 config file(s)
+2025-10-06 18:23:31,414 - INFO - Config ../../var/lib/config-manager/default_repo/cookbooks/webserver.yaml unchanged since last run, skipping
+2025-10-06 18:23:31,414 - INFO - State saved successfully
+2025-10-06 18:23:31,414 - INFO - All configurations successful - state file updated
+
+Processed 1 configs: 1 succeeded, 0 failed
+[OK] webserver.yaml: Success
+
+### state.json file output.
+(.venv) root@ip-172-31-255-43:~/config-manager# cat /var/lib/config-manager/state.json
+{
+  "../../var/lib/config-manager/default_repo/cookbooks/webserver.yaml": "421d1ce5655a416eae94bda61d3238183e20966995657d1f3a0381a0891e4553"
+}
+

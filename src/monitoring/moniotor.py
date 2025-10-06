@@ -1,6 +1,6 @@
 # Class for monitoring and logging system metrics
 class SystemMonitor:
-    pass.
+    pass
 
 # TODO : Implemention is pending.
 # Can be integrate with exsiting monitoring tool like prometheus, grafana etc.

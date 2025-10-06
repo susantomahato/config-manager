@@ -118,7 +118,8 @@ configure:
     - path: /var/www/html/index.php
       content: |
         <?php
-        phpinfo();
+          header("Content-Type: text/plain");
+          echo "Hello, world!\n";
       owner: www-data
       group: www-data
       mode: "0644"

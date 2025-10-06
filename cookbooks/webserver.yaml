@@ -22,11 +22,9 @@ install:
       sudo: true
     - command: "/usr/bin/apt-get install -y software-properties-common apt-transport-https"
       sudo: true
-    - command: "add-apt-repository -y ppa:ondrej/php"
+    - command: "curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/php-archive-keyring.gpg"
       sudo: true
-    - command: "/usr/bin/apt-get update"
-      sudo: true
-    - command: "/usr/bin/apt-get upgrade -y"
+    - command: "echo 'deb [signed-by=/usr/share/keyrings/php-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main' > /etc/apt/sources.list.d/php.list"
       sudo: true
   
   install:

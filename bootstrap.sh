@@ -104,5 +104,5 @@ echo "Installing dependencies..."
 
 echo "Setup complete! You can now run the sync manager using:"
 echo "source .venv/bin/activate"
-echo "python3 src.sync_manager.py --help"
-echo "python3 src.config_manager.py --help"
+echo "python3 src/sync_service.py --help"
+echo "python3 src/config_manager.py --help"

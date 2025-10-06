@@ -66,7 +66,7 @@ class ConfigManager:
             return hashlib.sha256(f.read()).hexdigest()
             
     def _config_changed(self, config_file: str) -> Tuple[bool, str]:
-        """Check if config file has changed since last run.
+        """Check if yaml file has changed since last run.
         Returns (changed, checksum) tuple."""
         try:
             # Convert to relative path from the workspace root
@@ -108,6 +108,7 @@ class ConfigManager:
                                  check=True, capture_output=True, text=True)
             return 'install ok installed' in result.stdout
         except subprocess.CalledProcessError:
+            logger.error(f"Package {package} to check installation failed")
             return False
     
     def check_file_state(self, path: str, content: str, mode: str = None,
@@ -138,6 +139,7 @@ class ConfigManager:
                     
             return True
         except Exception:
+            logger.error(f"Failed to check file state for {path}")
             return False
 
     def apply_config(self, config_file: str) -> Tuple[bool, Tuple[str, str]]:
@@ -151,7 +153,7 @@ class ConfigManager:
             if not changed:
                 return True, (checksum, os.path.relpath(config_file))
                 
-            with open(config_file) as f:
+            with open(config_file,'r') as f:
                 config = yaml.safe_load(f)
             
             if not config:
@@ -163,8 +165,7 @@ class ConfigManager:
             ########## Actual application logic starts here ##########
             # Update package lists
             # TODO : This can be optimized to run only once if multiple configs are applied.
-            self.run_cmd(['/usr/bin/apt-get', 'update'])
-            
+        
             # Remove packages
             # TODO : Remove section can be improved by doing diff from old file vs new file and auto
             # detecting removed packages. For now, keeping it simple.
@@ -175,13 +176,14 @@ class ConfigManager:
                         if not self.run_cmd(['/usr/bin/apt-get', 'remove', '-y', name]):
                             return False
             
-            # Install packages
+            # Preinstall  packages
             # TODO : Need to put more checks in commands before proceeding.
             if 'install' in config:
                 # Handle pre-installation steps
                 for step in config['install'].get('pre_install', []):
                     if 'command' in step:
                         if not self.run_cmd(step['command'].split()):
+                            logger.error(f"Pre-install command failed: {step['command']}")
                             return False
 
                 # Install packages
@@ -189,46 +191,67 @@ class ConfigManager:
                     name = pkg.get('package')
                     if name and not self.check_package_installed(name):
                         if not self.run_cmd(['/usr/bin/apt-get', 'install', '-y', name]):
+                            logger.error(f"Installation of package {name} failed")
                             return False
                             
                 # Handle post-installation steps
                 for step in config['install'].get('post_install', []):
                     if 'command' in step:
                         if not self.run_cmd(step['command'].split()):
+                            logger.error(f"Post-install command failed: {step['command']}")
                             return False
 
             # Configure files
             if 'configure' in config:
                 for file_cfg in config['configure'].get('files', []):
                     path = file_cfg.get('path')
+                    # Doing Basic yaml validation
                     if not path:
                         continue
 
-                try:
                     content = file_cfg.get('content', '')
                     mode = file_cfg.get('mode')
                     owner = file_cfg.get('owner')
                     group = file_cfg.get('group')
                     
-                    # Only update if current state doesn't match desired state
+                    # Optimization-1: Only update if current state doesn't match desired state
                     current_state = self.check_file_state(path, content, mode, owner, group)
                     if not current_state:
                         logger.info(f"Updating file {path} due to state mismatch")
                         
                         # Create directory with sudo if needed
                         dirname = os.path.dirname(path)
-                        if not os.path.exists(dirname):
-                            if not self.run_cmd(['mkdir', '-p', dirname]):
-                                return False
+                        try:
+                            if not os.path.exists(dirname):
+                                if not self.run_cmd(['mkdir', '-p', dirname]):
+                                    logger.error(f"Failed to create directory for {path}")
+                                    return False
+                        except Exception as e:
+                            logger.error(f"Failed to create directory for {path}: {e}")
+                            # Can be raise or contibue based on use-case
+                            return False
                         
                         # Write content through sudo
+                        # Using a temp file to ensure atomic write, permission harness, and backup.
+                        
                         temp_path = f"/tmp/{os.path.basename(path)}.tmp"
-                        with open(temp_path, 'w') as f:
-                            f.write(content)
+                        try:
+                            with open(temp_path, 'w') as f:
+                                f.write(content)
+                        except Exception as e:
+                            logger.error(f"Failed to write content to temp file for {path}: {e}")
+                            return False
                         
                         # Move file to destination with sudo
-                        if not self.run_cmd(['mv', temp_path, path]):
-                            os.unlink(temp_path)
+                        try:
+                            if not self.run_cmd(['mv', temp_path, path]):
+                                # optimization-2: Clean up temp file if move failed
+                                if os.path.exists(temp_path):
+                                    os.unlink(temp_path)
+                                logger.error(f"Failed to move temp file to {path}")
+                                return False
+                        except Exception as e:
+                            logger.error(f"Failed to move temp file to {path}: {e}")
                             return False
                             
                         logger.info(f"Updated content of {path}")
@@ -237,23 +260,28 @@ class ConfigManager:
                         if owner or group:
                             ownership = f"{owner or 'root'}:{group or 'root'}"
                             logger.info(f"Setting ownership {ownership} on {path}")
-                            if not self.run_cmd(['chown', ownership, path]):
+                            try:
+                                if not self.run_cmd(['chown', ownership, path]):
+                                    logger.error(f"Failed to set ownership for {path}")
+                                    return False
+                            except Exception as e:
+                                logger.error(f"Failed to set ownership for {path}: {e}")
                                 return False
                         
                         # Then set mode
                         if mode:
                             logger.info(f"Setting mode {mode} on {path}")
-                            if not self.run_cmd(['chmod', mode, path]):
+                            try:
+                                if not self.run_cmd(['chmod', mode, path]):
+                                    logger.error(f"Failed to set mode for {path}")
+                                    return False
+                            except Exception as e:
+                                logger.error(f"Failed to set mode for {path}: {e}")
                                 return False
                     else:
                         logger.info(f"File {path} already in desired state")
-                except Exception as e:
-                    logger.error(f"Failed to configure file {path}: {e}")
-                    return False
+                        return False
 
-            # Track services that need restart
-            services_to_restart = set()
-            
             # Configure services
             if 'configure' in config:
                 for svc in config['configure'].get('services', []):
@@ -261,47 +289,23 @@ class ConfigManager:
                     if not name:
                         continue
 
-                # Track service dependencies
-                if svc.get('restart_on_change'):
-                    watched_files = svc.get('watch_files', [])
-                    watched_packages = svc.get('watch_packages', [])
+                    # Handle service state
+                    # TODO : Need to move state mapping to constants file.
+                    state_map = {
+                        'started': 'start',
+                        'stopped': 'stop',
+                        'restarted': 'restart'
+                    }
                     
-                    # Check if any watched files were modified
-                    for file_path in watched_files:
-                        if any(f.get('path') == file_path for f in config.get('files', [])):
-                            services_to_restart.add(name)
-                            break
-                    
-                    # Check if any watched packages were modified
-                    for pkg_name in watched_packages:
-                        if any(p.get('name') == pkg_name for p in 
-                              config.get('install', {}).get('packages', []) +
-                              config.get('remove', {}).get('packages', [])):
-                            services_to_restart.add(name)
-                            break
+                    if (state := svc.get('state')) in state_map:
+                        if not self.run_cmd(['systemctl', state_map[state], name]):
+                            return False
 
-                # Handle service state
-                # TODO : Need to move state mapping to constants file.
-                state_map = {
-                    'started': 'start',
-                    'stopped': 'stop',
-                    'restarted': 'restart'
-                }
-                
-                if (state := svc.get('state')) in state_map:
-                    if not self.run_cmd(['systemctl', state_map[state], name]):
-                        return False
-
-                enabled = svc.get('enabled')
-                if enabled is not None:
-                    cmd = 'enable' if enabled else 'disable'
-                    if not self.run_cmd(['systemctl', cmd, name]):
-                        return False
-            
-            # Restart services that had their dependencies modified
-            for service in services_to_restart:
-                if not self.run_cmd(['systemctl', 'restart', service]):
-                    return False
+                    enabled = svc.get('enabled')
+                    if enabled is not None:
+                        cmd = 'enable' if enabled else 'disable'
+                        if not self.run_cmd(['systemctl', cmd, name]):
+                            return False
 
             logger.info("Configuration applied successfully")
             return True, (checksum, os.path.relpath(config_file))

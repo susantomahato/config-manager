@@ -1,5 +1,7 @@
 # Config Manager - System Design Document
 
+Original quip Link : https://quip.com/0s0TAFHJyqck/Configuration-management-Tool-System-Design
+
 ## Executive Summary
 
 Config Manager is a lightweight, Python-based configuration management system designed to automate server provisioning and maintain consistent system states across multiple nodes. The system uses YAML-based cookbooks for configuration specification and Git for distributed configuration synchronization.
